@@ -1,0 +1,7 @@
+type Query {
+  post: Post!
+}
+
+type Mutation {
+  createPost: Post!
+}
