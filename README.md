@@ -1,4 +1,4 @@
-# VSCode Graphql Schema Linter
+# Graphql Schema Linter for VSCode
 
 Integrates [graphql-schema-linter](https://github.com/cjoudrey/graphql-schema-linter) into VS Code. The extension uses the `graphql-schema-linter` library installed in the opened workspace folder.
 
