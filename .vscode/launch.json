@@ -11,13 +11,15 @@
 			"request": "launch",
 			"args": [
         "${workspaceFolder}/test-workspace",
-				"--extensionDevelopmentPath=${workspaceFolder}",
-        "--disable-extensions"
+				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"outFiles": [
 				"${workspaceFolder}/out/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "${defaultBuildTask}",
+			"env": {
+				"DEBUG_MODE": "true"
+			}
 		},
 		{
 			"name": "Extension Tests",

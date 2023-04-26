@@ -1,21 +1,23 @@
 {
   "name": "vscode-graphql-schema-linter",
-  "displayName": "vscode-graphql-schema-linter",
+  "displayName": "Graphql Schema Linter",
   "description": "GraphQL schema linter for VSCode",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.77.0"
   },
   "categories": [
-    "Other"
+    "Linters"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:graphql"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vscode-graphql-schema-linter.validate",
-        "title": "Validate GraphQL schema"
+        "command": "vscode-graphql-schema-linter.executeLint",
+        "title": "Execute lint for GraphQL Schema"
       }
     ]
   },

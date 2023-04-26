@@ -1,128 +1,76 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { runGraphqlSchemaLinter } from "./linter";
 
 const extensionName = "vscode-graphql-schema-linter";
+const DEBUG_MODE = process.env.DEBUG_MODE === "true";
 
-export function activate(context: vscode.ExtensionContext) {
-  let disposable = vscode.commands.registerCommand(`${extensionName}.validate`, validate);
+type Context = {
+  diagnosticCollection: vscode.DiagnosticCollection;
+  diagnosedFileUris: Set<vscode.Uri>;
+};
 
-  context.subscriptions.push(disposable);
+function isGraphQLDocument(document: vscode.TextDocument): boolean {
+  return document.languageId === "graphql" || /\.(gql|graphqls?)$/.test(document.fileName);
 }
 
-export function deactivate() {}
-
-let files: string[] = [];
-const diagnosticCollection = vscode.languages.createDiagnosticCollection(extensionName);
-
-async function validate() {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showErrorMessage("No active text editor found.");
+async function executeLint(document: vscode.TextDocument, context: Context) {
+  if (isGraphQLDocument(document) === false) {
     return;
   }
 
-  const result = await lint();
+  const lintResult = await runGraphqlSchemaLinter(document).catch((err) => {
+    if (DEBUG_MODE) {
+      console.error(err.message);
+    }
+    return null;
+  });
 
-  // clear
-  for (const file of files) {
-    const uri = vscode.Uri.file(file);
-    // diagnosticCollection.set(uri, []);
+  if (lintResult === null) {
+    return;
   }
-  files = [];
 
-  for (const [filePath, diagnostics] of Object.entries(result)) {
-    files.push(filePath);
-    const uri = vscode.Uri.file(filePath);
-    diagnosticCollection.set(uri, diagnostics);
+  // Clear diagnostics for files that are not in the lintResult.
+  for (const uri of context.diagnosedFileUris) {
+    context.diagnosticCollection.delete(uri);
+  }
+  context.diagnosedFileUris = new Set();
+
+  // Set diagnostics for files that are in the lintResult.
+  for (const [uri, diagnostics] of lintResult) {
+    context.diagnosedFileUris.add(uri);
+    context.diagnosticCollection.set(uri, diagnostics);
   }
 }
 
-type SchemaLinterError = {
-  message: string;
-  location: {
-    line: number;
-    column: number;
-    file: string;
+export function activate(context: vscode.ExtensionContext) {
+  const diagnosticCollection = vscode.languages.createDiagnosticCollection(extensionName);
+
+  const ctx: Context = {
+    diagnosticCollection,
+    diagnosedFileUris: new Set(),
   };
-  rule: string;
-};
 
-type LintResult = Record<string, vscode.Diagnostic[]>;
+  const disposable = vscode.commands.registerCommand(`${extensionName}.executeLint`, () => {
+    const document = vscode.window.activeTextEditor?.document;
+    if (document) {
+      executeLint(document, ctx);
+    }
+  });
 
-async function lint(): Promise<LintResult> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showErrorMessage("No active text editor found.");
-    return {};
-  }
+  context.subscriptions.push(disposable);
+  context.subscriptions.push(diagnosticCollection);
 
-  const document = editor.document;
-  const graphqlSchemaLinterPath = await findExecutable("graphql-schema-linter", document.fileName);
+  vscode.workspace.textDocuments.forEach((document) => {
+    executeLint(document, ctx);
+  });
 
-  if (!graphqlSchemaLinterPath) {
-    vscode.window.showErrorMessage("graphql-schema-linter not found in node_modules.");
-    return {};
-  }
+  vscode.workspace.onDidSaveTextDocument((document) => {
+    executeLint(document, ctx);
+  });
 
-  const cmd = `${graphqlSchemaLinterPath} --format json`;
-  const cwd = path.join(graphqlSchemaLinterPath, "..", "..", "..");
-  return new Promise((resolve, reject) => {
-    exec(cmd, { cwd }, (err, stdout, stderr) => {
-      if (err === null) {
-        return resolve({});
-      }
-
-      let errors: SchemaLinterError[];
-      try {
-        errors = JSON.parse(stdout).errors;
-      } catch (err) {
-        vscode.window.showErrorMessage((err as Error).toString());
-        return resolve({});
-      }
-
-      const result: LintResult = {};
-      errors.forEach((error) => {
-        const { message, location, rule } = error;
-        const { line, column, file } = location;
-
-        const diagnostic = new vscode.Diagnostic(
-          new vscode.Range(line - 1, column - 1, line - 1, column - 1),
-          message,
-          vscode.DiagnosticSeverity.Error
-        );
-        diagnostic.code = rule;
-
-        if (!result[file]) {
-          result[file] = [];
-        }
-
-        result[file].push(diagnostic);
-      });
-
-      resolve(result);
-    });
+  vscode.workspace.onDidOpenTextDocument((document) => {
+    executeLint(document, ctx);
   });
 }
 
-async function findExecutable(executableName: string, filePath: string): Promise<string | null> {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filePath));
-  if (!workspaceFolder) {
-    return null;
-  }
-
-  let currentPath = filePath;
-  const rootPath = workspaceFolder.uri.fsPath;
-
-  while (currentPath !== rootPath) {
-    currentPath = path.dirname(currentPath);
-    const nodeModulesPath = path.join(currentPath, "node_modules", ".bin", executableName);
-    if (fs.existsSync(nodeModulesPath)) {
-      return nodeModulesPath;
-    }
-  }
-
-  return null;
-}
+export function deactivate() {}
