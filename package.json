@@ -2,15 +2,26 @@
   "name": "vscode-graphql-schema-linter",
   "displayName": "Graphql Schema Linter",
   "description": "GraphQL schema linter for VSCode",
+  "publisher": "hokaccha",
+  "author": "hokaccha",
+  "license": "MIT",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.77.0"
   },
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hokaccha/vscode-graphql-schema-linter.git"
+  },
+  "bugs": {
+		"url": "https://github.com/hokaccha/vscode-graphql-schema-linter/issues"
+	},
   "categories": [
     "Linters"
   ],
   "activationEvents": [
-    "onLanguage:graphql"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
