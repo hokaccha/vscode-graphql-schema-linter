@@ -31,12 +31,12 @@ export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Pro
   const argv = ["node", "_", "--format", "json", "--config-directory", cwd];
   const exitCode = await runner.run(stdout, stdin, stderr, argv);
 
-  if (exitCode === 2) {
-    throw new Error(stderr.data || "graphql-schema-linter failed.");
-  }
-
   if (exitCode === 0) {
     return new Map();
+  }
+
+  if (exitCode !== 1) {
+    throw new Error(stderr.data || "graphql-schema-linter failed.");
   }
 
   const errors: SchemaLinterError[] = JSON.parse(stdout.data).errors;
