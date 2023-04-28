@@ -39,7 +39,6 @@ async function executeLint(document: vscode.TextDocument, context: Context) {
   for (const [filePath, diagnostics] of lintResult) {
     const uri = vscode.Uri.file(filePath);
     context.diagnosedFileUris.add(uri);
-    console.log(diagnostics);
     context.diagnosticCollection.set(uri, diagnostics);
   }
 }
