@@ -14,53 +14,53 @@ type SchemaLinterError = {
 };
 
 // Map<filePath, vscode.Diagnostic[]>
-type LintResult = Map<string, vscode.Diagnostic[]>;
+export type LintResult = Map<string, vscode.Diagnostic[]>;
 
 export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Promise<LintResult> {
-  const graphqlSchemaLinterPath = await findCommandPath(document);
+  const graphqlSchemaLinterPath = await findLibraryPath(document);
 
   if (graphqlSchemaLinterPath === null) {
-    throw new Error("graphql-schema-linter command not found.");
+    throw new Error("graphql-schema-linter is not installed.");
   }
 
-  const cmd = `${graphqlSchemaLinterPath} --format json`;
-  const cwd = path.join(graphqlSchemaLinterPath, "..", "..", "..");
+  const cwd = path.join(graphqlSchemaLinterPath, "..", "..");
+  const { runner } = require(graphqlSchemaLinterPath);
+  const stdout = createStdio();
+  const stderr = createStdio();
+  const stdin = null;
+  const argv = ["node", "_", "--format", "json", "--config-directory", cwd];
+  const exitCode = await runner.run(stdout, stdin, stderr, argv);
 
-  return new Promise<LintResult>((resolve, reject) => {
-    exec(cmd, { cwd }, (err, stdout) => {
-      if (err === null) {
-        return resolve(new Map());
-      }
+  if (exitCode === 2) {
+    throw new Error(stderr.data || "graphql-schema-linter failed.");
+  }
 
-      let errors: SchemaLinterError[];
-      try {
-        errors = JSON.parse(stdout).errors;
-      } catch (err) {
-        reject(err);
-        return;
-      }
+  if (exitCode === 0) {
+    return new Map();
+  }
 
-      const result: LintResult = new Map();
-      errors.forEach((error) => {
-        const { message, location, rule } = error;
-        const { line, column, file: filePath } = location;
+  const errors: SchemaLinterError[] = JSON.parse(stdout.data).errors;
+  const result: LintResult = new Map();
 
-        const diagnostic = new vscode.Diagnostic(
-          new vscode.Range(line - 1, column - 1, line - 1, column - 1),
-          message,
-          vscode.DiagnosticSeverity.Error
-        );
-        diagnostic.code = rule;
+  errors.forEach((error) => {
+    const { message, location, rule } = error;
+    const { line, column, file: filePath } = location;
 
-        result.set(filePath, (result.get(filePath) || []).concat(diagnostic));
-      });
-      resolve(result);
-    });
+    const diagnostic = new vscode.Diagnostic(
+      new vscode.Range(line - 1, column - 1, line - 1, column - 1),
+      message,
+      vscode.DiagnosticSeverity.Error
+    );
+    diagnostic.code = rule;
+
+    result.set(filePath, (result.get(filePath) || []).concat(diagnostic));
   });
+
+  return result;
 }
 
-// Find executable graphql-schema-linter command in node_modules/.bin.
-async function findCommandPath(document: vscode.TextDocument): Promise<string | null> {
+// Find graphql-schema-linter library in node_modules
+async function findLibraryPath(document: vscode.TextDocument): Promise<string | null> {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(document.fileName));
   if (!workspaceFolder) {
     return null;
@@ -71,11 +71,24 @@ async function findCommandPath(document: vscode.TextDocument): Promise<string | 
 
   while (currentPath !== rootPath) {
     currentPath = path.dirname(currentPath);
-    const nodeModulesPath = path.join(currentPath, "node_modules", ".bin", "graphql-schema-linter");
-    if (fs.existsSync(nodeModulesPath)) {
-      return nodeModulesPath;
+    const libPath = path.join(currentPath, "node_modules", "graphql-schema-linter");
+    if (fs.existsSync(libPath)) {
+      return libPath;
     }
   }
 
   return null;
+}
+
+function createStdio() {
+  return {
+    data: "",
+    write(_data: string) {
+      this.data = _data;
+      return true;
+    },
+    on(_: string, cb: () => void) {
+      cb();
+    },
+  };
 }

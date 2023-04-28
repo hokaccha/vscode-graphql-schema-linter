@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { runGraphqlSchemaLinter } from "./linter";
+import { LintResult, runGraphqlSchemaLinter } from "./linter";
 
 const extensionName = "vscode-graphql-schema-linter";
 const DEBUG_MODE = process.env.DEBUG_MODE === "true";
@@ -22,12 +22,8 @@ async function executeLint(document: vscode.TextDocument, context: Context) {
     if (DEBUG_MODE) {
       console.error(err.message);
     }
-    return null;
+    return new Map() as LintResult;
   });
-
-  if (lintResult === null) {
-    return;
-  }
 
   // Clear diagnostics for files that are not in the lintResult.
   for (const uri of context.diagnosedFileUris) {
