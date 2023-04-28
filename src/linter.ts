@@ -13,7 +13,8 @@ type SchemaLinterError = {
   rule: string;
 };
 
-type LintResult = Map<vscode.Uri, vscode.Diagnostic[]>;
+// Map<filePath, vscode.Diagnostic[]>
+type LintResult = Map<string, vscode.Diagnostic[]>;
 
 export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Promise<LintResult> {
   const graphqlSchemaLinterPath = await findCommandPath(document);
@@ -42,7 +43,7 @@ export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Pro
       const result: LintResult = new Map();
       errors.forEach((error) => {
         const { message, location, rule } = error;
-        const { line, column, file } = location;
+        const { line, column, file: filePath } = location;
 
         const diagnostic = new vscode.Diagnostic(
           new vscode.Range(line - 1, column - 1, line - 1, column - 1),
@@ -51,8 +52,7 @@ export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Pro
         );
         diagnostic.code = rule;
 
-        const uri = vscode.Uri.file(file);
-        result.set(uri, (result.get(uri) || []).concat(diagnostic));
+        result.set(filePath, (result.get(filePath) || []).concat(diagnostic));
       });
       resolve(result);
     });

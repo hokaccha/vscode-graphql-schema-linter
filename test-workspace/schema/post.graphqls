@@ -8,3 +8,7 @@ type Post {
 type User {
   id: ID!
 }
+
+type User2 {
+  id: ID!
+}
