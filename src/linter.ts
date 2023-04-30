@@ -50,6 +50,7 @@ export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Pro
       message,
       vscode.DiagnosticSeverity.Error
     );
+    diagnostic.source = "graphql-schema-linter";
     diagnostic.code = rule;
 
     result.set(filePath, (result.get(filePath) || []).concat(diagnostic));
