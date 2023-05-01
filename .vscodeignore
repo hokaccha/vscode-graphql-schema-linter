@@ -11,3 +11,4 @@ tsconfig.json
 **/*.ts
 **/node_modules/**
 test-workspace/**
+assets/screenshot.png
