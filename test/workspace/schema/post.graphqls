@@ -9,6 +9,7 @@ type User {
   id: ID!
 }
 
+# Unused type
 type User2 {
   id: ID!
 }

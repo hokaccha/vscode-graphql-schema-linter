@@ -14,7 +14,7 @@ function isGraphQLDocument(document: vscode.TextDocument): boolean {
   return document.languageId === "graphql" || /\.(gql|graphqls?)$/.test(document.fileName);
 }
 
-async function executeLint(document: vscode.TextDocument, context: Context) {
+export async function executeLint(document: vscode.TextDocument, context: Context) {
   if (isGraphQLDocument(document) === false) {
     return;
   }
