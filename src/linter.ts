@@ -1,6 +1,6 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
+import vscode from "vscode";
 
 type SchemaLinterError = {
   message: string;
@@ -23,6 +23,7 @@ export async function runGraphqlSchemaLinter(document: vscode.TextDocument): Pro
   }
 
   const cwd = path.join(graphqlSchemaLinterPath, "..", "..");
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { runner } = require(graphqlSchemaLinterPath);
   const stdout = createStdio();
   const stderr = createStdio();

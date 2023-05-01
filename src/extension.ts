@@ -1,5 +1,6 @@
-import * as vscode from "vscode";
-import { LintResult, runGraphqlSchemaLinter } from "./linter";
+import vscode from "vscode";
+import type { LintResult } from "./linter";
+import { runGraphqlSchemaLinter } from "./linter";
 
 const extensionName = "vscode-graphql-schema-linter";
 const DEBUG_MODE = process.env.DEBUG_MODE === "true";
@@ -70,4 +71,6 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {}
+export function deactivate() {
+  // do nothing
+}
